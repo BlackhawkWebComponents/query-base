@@ -1,0 +1,191 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+Element providing base query support for varying datasources
+
+##### Example
+
+    <query-base outputQuery="{{outputQuery}}">
+        <q-select>
+            <q-field name="first_name"></q-field>
+            <q-field name="last_name"></q-field>
+        </q-select>
+        <q-from>
+            <q-collection name="person"></q-collection>
+        </q-from>
+        <q-where>
+            <q-filter field="first_name" op="equals" value="Foo"></q-filter>
+            <q-filter field="last_name" op="equals" value="Bar"></q-filter>
+        </q-where>
+    </query-base>
+
+@element query-base
+@blurb Element providing base query support for varying datasources
+@status alpha
+@url http://blackhawkwebcomponents.github.io/query-base
+-->
+<polymer-element name="query-base" attributes="outputQuery">
+    <template>
+        <content id="querySelect" select="q-select"></content>
+        <content id="queryFrom" select="q-from"></content>
+        <content id="queryWhere" select="q-where"></content>
+    </template>
+    <script>
+        Polymer('query-base', {
+            /**
+             * Query output, query-base outputs sql for demostrative purposes
+             * @attribute outputQuery
+             * @type object
+             */
+
+            observe: {
+                'selectFields fromCollections whereFilters': 'updateOutputQuery'
+            },
+            created: function() {
+                this.outputQuery = {};
+                this.selectFields = [];
+                this.fromCollections = [];
+                this.whereFilters = [];
+            },
+            ready: function() {
+                this.update();
+            },
+            update: function() {
+                this.selectFields = this.$.querySelect.getDistributedNodes()[0].queryFields;
+                this.fromCollections = this.$.queryFrom.getDistributedNodes()[0].fromCollections;
+                this.whereFilters = this.$.queryWhere.getDistributedNodes()[0].whereFilters;
+                this.onMutation(this, this.update); // Watch for future updates.
+            },
+            // updateOutputQuery will be overridden by whatever search extends this
+            updateOutputQuery: function() {
+                var select = 'select ';
+                for (var i = 0; i < this.selectFields.length; ++i) {
+                    if (i > 0 && this.selectFields.length > 1)
+                        select += ', ';
+                    select += this.selectFields[i].name;
+                }
+
+                var from = ' from ';
+                for (var i = 0; i < this.fromCollections.length; ++i) {
+                    if (i > 0 && this.fromCollections.length > 1)
+                        from += ', ';
+                    from += this.fromCollections[i].name;
+                }
+
+                var where = ' where ';
+                for (var i = 0; i < this.whereFilters.length; ++i) {
+                    var filter  = this.whereFilters[i];
+                    if (filter.value && filter.value != null && filter.value.trim().length > 0) {
+                        if (i > 0 && this.whereFilters.length > 1)
+                            where += ' and ';
+                        //TODO: put in function with case statement
+                        var op;
+                        if (filter.op == 'equals')
+                            op = ' = ';
+                        else if (filter.op == 'notequals')
+                            op = ' <> ';
+                        else op = ' = ';
+                        where += filter.field + op + "'"+filter.value+"'";
+                    }
+                }
+
+                this.outputQuery.sql = select + from + where;
+            }
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="q-select" attributes="queryFields">
+    <template>
+        <content id="queryFields" select="q-field"></content>
+    </template>
+    <script>
+        Polymer('q-select', {
+            created: function() {
+                this.queryFields = [];
+            },
+            ready: function() {
+                this.updateQueryFields();
+            },
+            updateQueryFields: function() {
+                this.queryFields = Array.prototype.slice.call(
+                        this.$.queryFields.getDistributedNodes());
+                this.onMutation(this, this.updateQueryFields); // Watch for future updates.
+            }
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="q-field" attributes="name">
+    <template>
+
+    </template>
+    <script>
+        Polymer('q-field', {
+            name: null
+        });
+    </script>
+</polymer-element>
+
+
+<polymer-element name="q-from" attributes="fromCollections">
+    <template>
+        <content id="fromCollections" select="q-collection"></content>
+    </template>
+    <script>
+        Polymer('q-from', {
+            created: function() {
+                this.fromCollections = [];
+            },
+            ready: function() {
+                this.updateFromCollections();
+            },
+            updateFromCollections: function() {
+                this.fromCollections = Array.prototype.slice.call(
+                        this.$.fromCollections.getDistributedNodes());
+                this.onMutation(this, this.updateFromCollections); // Watch for future updates.
+            }
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="q-collection" attributes="name">
+    <template></template>
+    <script>
+        Polymer('q-collection', {
+            name: null
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="q-where" attributes="whereFilters">
+    <template>
+        <content id="whereFilters" select="q-filter"></content>
+    </template>
+    <script>
+        Polymer('q-where', {
+            created: function() {
+                this.whereFilters = [];
+            },
+            ready: function() {
+                this.updateWhereFilters();
+            },
+            updateWhereFilters: function() {
+                this.whereFilters = Array.prototype.slice.call(
+                        this.$.whereFilters.getDistributedNodes());
+                this.onMutation(this, this.updateWhereFilters); // Watch for future updates.
+            }
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="q-filter" attributes="field op value">
+    <template></template>
+    <script>
+        Polymer('q-filter', {
+            field: null,
+            op: null,
+            value: null
+        });
+    </script>
+</polymer-element>
