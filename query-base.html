@@ -11,7 +11,7 @@ Element providing base query support for varying datasources
             <q-field name="last_name"></q-field>
         </q-select>
         <q-from>
-            <q-collection name="person"></q-collection>
+            <q-dataset name="person"></q-dataset>
         </q-from>
         <q-where>
             <q-filter field="first_name" op="equals" value="Foo"></q-filter>
@@ -58,38 +58,7 @@ Element providing base query support for varying datasources
             },
             // updateOutputQuery will be overridden by whatever search extends this
             updateOutputQuery: function() {
-                var select = 'select ';
-                for (var i = 0; i < this.selectFields.length; ++i) {
-                    if (i > 0 && this.selectFields.length > 1)
-                        select += ', ';
-                    select += this.selectFields[i].name;
-                }
 
-                var from = ' from ';
-                for (var i = 0; i < this.fromCollections.length; ++i) {
-                    if (i > 0 && this.fromCollections.length > 1)
-                        from += ', ';
-                    from += this.fromCollections[i].name;
-                }
-
-                var where = ' where ';
-                for (var i = 0; i < this.whereFilters.length; ++i) {
-                    var filter  = this.whereFilters[i];
-                    if (filter.value && filter.value != null && filter.value.trim().length > 0) {
-                        if (i > 0 && this.whereFilters.length > 1)
-                            where += ' and ';
-                        //TODO: put in function with case statement
-                        var op;
-                        if (filter.op == 'equals')
-                            op = ' = ';
-                        else if (filter.op == 'notequals')
-                            op = ' <> ';
-                        else op = ' = ';
-                        where += filter.field + op + "'"+filter.value+"'";
-                    }
-                }
-
-                this.outputQuery.sql = select + from + where;
             }
         });
     </script>
@@ -130,7 +99,7 @@ Element providing base query support for varying datasources
 
 <polymer-element name="q-from" attributes="fromCollections">
     <template>
-        <content id="fromCollections" select="q-collection"></content>
+        <content id="fromCollections" select="q-dataset"></content>
     </template>
     <script>
         Polymer('q-from', {
@@ -149,10 +118,11 @@ Element providing base query support for varying datasources
     </script>
 </polymer-element>
 
-<polymer-element name="q-collection" attributes="name">
+<!-- TODO: consider renaming to dataset, sounds cleaner, collection is too ambiguous -->
+<polymer-element name="q-dataset" attributes="name">
     <template></template>
     <script>
-        Polymer('q-collection', {
+        Polymer('q-dataset', {
             name: null
         });
     </script>
