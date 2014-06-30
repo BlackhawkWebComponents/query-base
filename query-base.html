@@ -56,8 +56,10 @@ Element providing base query support for varying datasources
             update: function() {
                 this.selectFields = this.$.querySelect.getDistributedNodes()[0].queryFields;
                 this.fromDatasets = this.$.queryFrom.getDistributedNodes()[0].fromDatasets;
-                this.whereConditions = this.$.queryWhere.getDistributedNodes()[0].whereConditions;
-                this.groupByFields = this.$.queryGroupBy.getDistributedNodes()[0].fields;
+                if (this.$.queryWhere.getDistributedNodes()[0])
+                    this.whereConditions = this.$.queryWhere.getDistributedNodes()[0].whereConditions;
+                if (this.$.queryGroupBy.getDistributedNodes()[0])
+                    this.groupByFields = this.$.queryGroupBy.getDistributedNodes()[0].fields;
                 this.onMutation(this, this.update); // Watch for future updates.
             },
             //TODO: consider putting this in sql-query and extending it which would extend query-base
