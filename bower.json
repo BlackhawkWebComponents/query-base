@@ -1,0 +1,7 @@
+{
+  "name": "query-base#gh-pages",
+  "private": true,
+  "dependencies": {
+    "query-base": "BlackhawkWebComponents/query-base#master"
+  }
+}
