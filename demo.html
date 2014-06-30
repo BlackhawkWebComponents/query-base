@@ -15,16 +15,17 @@
     <p>A <code>&lt;query-base&gt;</code> looks like this:</p>
     <query-base outputQuery="{{outputQuery}}">
         <q-select>
-            <q-field name="first_name"></q-field>
-            <q-field name="last_name"></q-field>
+            <q-field expr="gndr" as="gender"></q-field>
+            <q-field expr="count(*)" as="gender_count"></field>
         </q-select>
         <q-from>
-            <q-dataset name="person"></q-dataset>
+            <q-dataset name="employment_records"></q-dataset>
         </q-from>
         <q-where>
-            <q-filter field="first_name" op="equals" value="Foo"></q-filter>
-            <q-filter field="last_name" op="equals" value="Bar"></q-filter>
+            <q-condition field="status" op="equals" value="employed"></q-condition>
         </q-where>
+        <q-group-by fields="['gender']"></q-group-by>
+
     </query-base>
 
     <p>Output Query</p>

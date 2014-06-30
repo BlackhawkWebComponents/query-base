@@ -7,16 +7,17 @@ Element providing base query support for varying datasources
 
     <query-base outputQuery="{{outputQuery}}">
         <q-select>
-            <q-field name="first_name"></q-field>
-            <q-field name="last_name"></q-field>
+            <q-field expr="gndr" as="gender"></q-field>
+            <q-field expr="count(*)" as="gender_count"></field>
         </q-select>
         <q-from>
-            <q-dataset name="person"></q-dataset>
+            <q-dataset name="employment_records"></q-dataset>
         </q-from>
         <q-where>
-            <q-filter field="first_name" op="equals" value="Foo"></q-filter>
-            <q-filter field="last_name" op="equals" value="Bar"></q-filter>
+            <q-condition field="status" op="equals" value="employed"></q-condition>
         </q-where>
+        <q-group-by fields="['gender']"></q-group-by>
+
     </query-base>
 
 @element query-base
@@ -29,6 +30,7 @@ Element providing base query support for varying datasources
         <content id="querySelect" select="q-select"></content>
         <content id="queryFrom" select="q-from"></content>
         <content id="queryWhere" select="q-where"></content>
+        <content id="queryGroupBy" select="q-group-by"></content>
     </template>
     <script>
         Polymer('query-base', {
@@ -39,26 +41,74 @@ Element providing base query support for varying datasources
              */
 
             observe: {
-                'selectFields fromCollections whereFilters': 'updateOutputQuery'
+                'selectFields fromDatasets whereConditions groupByFields': 'updateOutputQuery'
             },
             created: function() {
                 this.outputQuery = {};
                 this.selectFields = [];
-                this.fromCollections = [];
-                this.whereFilters = [];
+                this.fromDatasets = [];
+                this.whereConditions = [];
+                this.groupByFields = [];
             },
             ready: function() {
                 this.update();
             },
             update: function() {
                 this.selectFields = this.$.querySelect.getDistributedNodes()[0].queryFields;
-                this.fromCollections = this.$.queryFrom.getDistributedNodes()[0].fromCollections;
-                this.whereFilters = this.$.queryWhere.getDistributedNodes()[0].whereFilters;
+                this.fromDatasets = this.$.queryFrom.getDistributedNodes()[0].fromDatasets;
+                this.whereConditions = this.$.queryWhere.getDistributedNodes()[0].whereConditions;
+                this.groupByFields = this.$.queryGroupBy.getDistributedNodes()[0].fields;
                 this.onMutation(this, this.update); // Watch for future updates.
             },
-            // updateOutputQuery will be overridden by whatever search extends this
+            //TODO: consider putting this in sql-query and extending it which would extend query-base
             updateOutputQuery: function() {
+                var select = 'select ';
+                for (var i = 0; i < this.selectFields.length; ++i) {
+                    if (i > 0 && this.selectFields.length > 1)
+                        select += ', ';
+                    var alias = '';
+                    if ( this.selectFields[i].as && this.selectFields[i].as != null && this.selectFields[i].as.length > 0)
+                        alias = ' as ' + this.selectFields[i].as;
+                    select += this.selectFields[i].expr + alias;
+                }
 
+                var from = ' from ';
+                for (var i = 0; i < this.fromDatasets.length; ++i) {
+                    if (i > 0 && this.fromDatasets.length > 1)
+                        from += ', ';
+                    from += this.fromDatasets[i].name;
+                }
+
+                var where = ' where ';
+                for (var i = 0; i < this.whereConditions.length; ++i) {
+                    var condition  = this.whereConditions[i];
+                    if (condition.value && condition.value != null && condition.value.trim().length > 0) {
+                        if (i > 0 && this.whereConditions.length > 1)
+                            where += ' and ';
+                        //TODO: put in function with case statement
+                        var op;
+                        if (condition.op == 'equals')
+                            op = ' = ';
+                        else if (condition.op == 'notequals')
+                            op = ' <> ';
+                        else op = ' = ';
+                        where += condition.field + op + "'"+condition.value+"'";
+                    }
+                }
+
+                var groupBy = '';
+
+                if (this.groupByFields.length > 0) {
+                    groupBy = ' group by ';
+                    for (var i = 0; i < this.groupByFields.length; ++i) {
+                        if (i > 0 && this.groupByFields.length > 1)
+                            groupBy += ', ';
+                        groupBy += this.groupByFields[i];
+                    }
+                }
+
+
+                this.outputQuery.sql = select + from + where + groupBy;
             }
         });
     </script>
@@ -85,40 +135,40 @@ Element providing base query support for varying datasources
     </script>
 </polymer-element>
 
-<polymer-element name="q-field" attributes="name">
+<polymer-element name="q-field" attributes="expr as">
     <template>
 
     </template>
     <script>
         Polymer('q-field', {
-            name: null
+            expr: null,
+            as: null
         });
     </script>
 </polymer-element>
 
 
-<polymer-element name="q-from" attributes="fromCollections">
+<polymer-element name="q-from" attributes="fromDatasets">
     <template>
-        <content id="fromCollections" select="q-dataset"></content>
+        <content id="fromDatasets" select="q-dataset"></content>
     </template>
     <script>
         Polymer('q-from', {
             created: function() {
-                this.fromCollections = [];
+                this.fromDatasets = [];
             },
             ready: function() {
-                this.updateFromCollections();
+                this.updateFromDatasets();
             },
-            updateFromCollections: function() {
-                this.fromCollections = Array.prototype.slice.call(
-                        this.$.fromCollections.getDistributedNodes());
-                this.onMutation(this, this.updateFromCollections); // Watch for future updates.
+            updateFromDatasets: function() {
+                this.fromDatasets = Array.prototype.slice.call(
+                        this.$.fromDatasets.getDistributedNodes());
+                this.onMutation(this, this.updateFromDatasets); // Watch for future updates.
             }
         });
     </script>
 </polymer-element>
 
-<!-- TODO: consider renaming to dataset, sounds cleaner, collection is too ambiguous -->
 <polymer-element name="q-dataset" attributes="name">
     <template></template>
     <script>
@@ -128,34 +178,43 @@ Element providing base query support for varying datasources
     </script>
 </polymer-element>
 
-<polymer-element name="q-where" attributes="whereFilters">
+<polymer-element name="q-where" attributes="whereConditions">
     <template>
-        <content id="whereFilters" select="q-filter"></content>
+        <content id="whereConditions" select="q-condition"></content>
     </template>
     <script>
         Polymer('q-where', {
             created: function() {
-                this.whereFilters = [];
+                this.whereConditions = [];
             },
             ready: function() {
-                this.updateWhereFilters();
+                this.updateWhereConditions();
             },
-            updateWhereFilters: function() {
-                this.whereFilters = Array.prototype.slice.call(
-                        this.$.whereFilters.getDistributedNodes());
-                this.onMutation(this, this.updateWhereFilters); // Watch for future updates.
+            updateWhereConditions: function() {
+                this.whereConditions = Array.prototype.slice.call(
+                        this.$.whereConditions.getDistributedNodes());
+                this.onMutation(this, this.updateWhereConditions); // Watch for future updates.
             }
         });
     </script>
 </polymer-element>
 
-<polymer-element name="q-filter" attributes="field op value">
+<polymer-element name="q-condition" attributes="field op value">
     <template></template>
     <script>
-        Polymer('q-filter', {
+        Polymer('q-condition', {
             field: null,
             op: null,
             value: null
+        });
+    </script>
+</polymer-element>
+
+<polymer-element name="q-group-by" attributes="fields">
+    <template></template>
+    <script>
+        Polymer('q-group-by', {
+            fields: []
         });
     </script>
 </polymer-element>
