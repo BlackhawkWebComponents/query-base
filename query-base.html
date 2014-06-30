@@ -84,7 +84,8 @@ Element providing base query support for varying datasources
                 var where = ' where ';
                 for (var i = 0; i < this.whereConditions.length; ++i) {
                     var condition  = this.whereConditions[i];
-                    if (condition.value && condition.value != null && condition.value.trim().length > 0) {
+                    if ( (condition.value && condition.value != null && condition.value.trim().length > 0) ||
+                            (condition.op == 'isnotnull' || condition.op == 'isnull') ){
                         if (i > 0 && this.whereConditions.length > 1)
                             where += ' and ';
                         //TODO: put in function with case statement
@@ -93,8 +94,17 @@ Element providing base query support for varying datasources
                             op = ' = ';
                         else if (condition.op == 'notequals')
                             op = ' <> ';
+                        else if (condition.op == 'isnull')
+                            op = ' is null ';
+                        else if (condition.op == 'isnotnull')
+                            op = ' is not null ';
                         else op = ' = ';
-                        where += condition.field + op + "'"+condition.value+"'";
+
+                        where += condition.field + op;
+
+                        if (condition.value != null)
+                            where += condition.value;
+
                     }
                 }
 
