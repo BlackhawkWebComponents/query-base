@@ -25,7 +25,9 @@ Element providing base query support for varying datasources
 @status alpha
 @url http://blackhawkwebcomponents.github.io/query-base
 -->
-<polymer-element name="query-base" attributes="outputQuery">
+<polymer-element name="query-base"
+                 attributes="outputQuery limit debug"
+                 on-query-condition-changed="queryConditionChanged">
     <template>
         <content id="querySelect" select="q-select"></content>
         <content id="queryFrom" select="q-from"></content>
@@ -40,8 +42,24 @@ Element providing base query support for varying datasources
              * @type object
              */
 
+            /**
+             * Limit rows returned
+             * @attribute limit
+             * @type integer
+             * @default null
+             */
+            limit:null,
+
+            /**
+             * Set debug mode
+             * @attribute debug
+             * @type string
+             * @default false
+             */
+            debug:false,
+
             observe: {
-                'selectFields fromDatasets whereConditions groupByFields': 'updateOutputQuery'
+                'selectFields fromDatasets whereConditions groupByFields': 'updateQuery'
             },
             created: function() {
                 this.outputQuery = {};
@@ -63,6 +81,13 @@ Element providing base query support for varying datasources
                 if (this.$.queryGroupBy.getDistributedNodes()[0])
                     this.groupByFields = this.$.queryGroupBy.getDistributedNodes()[0].fields;
                 this.onMutation(this, this.update); // Watch for future updates.
+            },
+            updateQuery: function() {
+                this.updateOutputQuery();
+                this.fire('query-change', {'query': this.outputQuery});
+            },
+            queryConditionChanged: function(event, detail) {
+                this.updateQuery();
             },
             //TODO: consider putting this in sql-query and extending it which would extend query-base
             updateOutputQuery: function() {
@@ -126,7 +151,7 @@ Element providing base query support for varying datasources
 
 
                 this.outputQuery.sql = select + from + where + groupBy;
-                this.fire('query-change', this.outputQuery);
+
             }
         });
     </script>
@@ -223,7 +248,10 @@ Element providing base query support for varying datasources
         Polymer('q-condition', {
             field: null,
             op: null,
-            value: null
+            value: null,
+            valueChanged: function() {
+                this.fire('query-condition-changed', {"field":this.field,"op":this.op,"value":this.value});
+            }
         });
     </script>
 </polymer-element>
